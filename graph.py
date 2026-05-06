@@ -1,5 +1,6 @@
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
+from langgraph.graph.state import CompiledStateGraph # type
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -44,7 +45,7 @@ def node2(current_state: GraphState):
     return {"state": response.content}
 
 # 3. Graph build karein
-workflow = StateGraph(GraphState)
+workflow: StateGraph = StateGraph(GraphState)
 
 # Nodes add karein
 workflow.add_node("node1", node1)
@@ -59,10 +60,10 @@ workflow.add_conditional_edges("node1", router_function, {
 workflow.add_edge("node2", END)
 
 # Graph compile karein
-app = workflow.compile()
+graph: CompiledStateGraph = workflow.compile()
 
 # 4. Run karein
 initial_input = {"state": "hellooooooooooooooooooo"}
-result = app.invoke(initial_input)
+result = graph.invoke(initial_input)
 
 print("\nFinal Output:", result["state"])
