@@ -1,0 +1,27 @@
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packages
+dist/
+build/
+*.egg-info/
+
+# uv specific (agar aap uv use kar rahe hain)
+.uv/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS related
+.DS_Store
+Thumbs.db
