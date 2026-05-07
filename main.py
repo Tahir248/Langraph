@@ -4,7 +4,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from dotenv import load_dotenv
 # from langchain_community.tools.tavily_search import TavilySearchResults # OLD
 from langchain_tavily import TavilySearch # NEW
-from langgraph.prebuilt import create_react_agent # OLD WAY
+from langgraph.prebuilt import create_react_agent # OLD WAY - BUT STABLE
 # from langchain.agents import create_react_agent # NEW WAY (as suggested by warning)
 import warnings
 warnings.filterwarnings("ignore") # Ye sari faltu warnings chhupa dega
