@@ -20,7 +20,7 @@ model = ChatGoogleGenerativeAI(
 
 # State definition
 class MessagesState(TypedDict): # Data Structure (Dict), Ye define karta hai ke humare graph ka state kaisa dikhega.
-    messages: Annotated[list[AnyMessage], add_messages]
+    messages: Annotated[list[AnyMessage], add_messages] # Annotated[Type, ReducerFunction]
 
 # Tools setup
 tavily_tool = TavilySearch(max_results=2)
