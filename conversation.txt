@@ -1,0 +1,68 @@
+(project-uv) PS C:\AI Agent\Project-UV> uv run graph_custom_orchestration.py
+
+You: Please withdraw amount $2000 from my bank meezan # 132465786 and deposit money $1500 into Umar HBL account # 88899910 and left amount send to the charity to the saylani ngo faysal bank # 555444666.
+---Node 1 Running--- 
+---Withdraw Money Tool Invoked---
+---Node 1 Running--- 
+---Deposit Money Tool Invoked---
+---Node 1 Running--- 
+---Charity Donation Tool Invoked---
+---Node 1 Running--- 
+
+--- Current State ---
+================================ System Message ================================
+
+Your name is 'Junior'. You are a helpful assistant.
+================================ Human Message =================================
+Name: Tahir
+
+Please withdraw amount $2000 from my bank meezan # 132465786 and deposit money $1500 into Umar HBL account # 88899910 and left amount send to the charity to the saylani ngo faysal bank # 555444666.
+================================== Ai Message ==================================
+
+[]
+Tool Calls:
+  withdraw_money (13bba05c-075c-4e99-89c8-2180d47c6dae)
+ Call ID: 13bba05c-075c-4e99-89c8-2180d47c6dae
+  Args:
+    amount: 2000
+    bankName: meezan
+    account: 132465786
+================================= Tool Message =================================
+Name: withdraw_money
+
+{"status": "Success HO GYA", "balance": 5000}
+================================== Ai Message ==================================
+
+[]
+Tool Calls:
+  deposit_money (47c4228b-b5df-4048-8c1b-e750ec2c4baa)
+ Call ID: 47c4228b-b5df-4048-8c1b-e750ec2c4baa
+  Args:
+    account_holder_name: Umar
+    amount: 1500
+    bankName: HBL
+    account: 88899910
+================================= Tool Message =================================
+Name: deposit_money
+
+{"status": "Success HO GYA", "balance": 5000}
+================================== Ai Message ==================================
+
+[]
+Tool Calls:
+  charity_donation (ffb49f7b-23a2-4484-9c90-ca0f52792f98)
+ Call ID: ffb49f7b-23a2-4484-9c90-ca0f52792f98
+  Args:
+    bankName: faysal bank
+    ngo_name: saylani
+    amount: 500
+    account: 555444666
+================================= Tool Message =================================
+Name: charity_donation
+
+{"status": "Success HO GYA", "balance": 5000}
+================================== Ai Message ==================================
+
+[{'type': 'text', 'text': "The transactions have been successfully completed:\n\n1.  **Withdrawal:** $2,000 withdrawn from your Meezan bank account (#132465786).\n2.  **Deposit:** $1,500 deposited into Umar's HBL account (#88899910).\n3.  **Charity:** $500 donated to the Saylani Welfare International Trust via Faysal Bank (#555444666).", 'extras': {'signature': 'EjQKMgEMOdbHS1tqJelwIO0dRQc5X+2Xzl2Q8y4dim9lYbvWs3EMdnfkBTc2sca0e8sXheYZ'}}]
+
+You: 

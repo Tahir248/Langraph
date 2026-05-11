@@ -1,11 +1,14 @@
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, Annotated
 from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+# from langgraph.graph import MessagesState
 from langgraph.graph.state import CompiledStateGraph # type
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage, AIMessage
 # from langgraph.prebuilt import create_react_agent
 from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import tools_condition
 from langchain_tavily import TavilySearch
 
 load_dotenv()  # Ye command khud hi .env file se keys utha legi
@@ -15,35 +18,60 @@ model = ChatGoogleGenerativeAI(
     temperature=0.7  # Ye AI ko thora natural aur conversational banayega
 )
 
+# State definition
+class MessagesState(TypedDict): # Data Structure (Dict), Ye define karta hai ke humare graph ka state kaisa dikhega.
+    messages: Annotated[list[AnyMessage], add_messages]
+
 # Tools setup
 tavily_tool = TavilySearch(max_results=2)
 # Custom tools
-def deposite_money(bankName: str, account: int, amount: float = 1500) -> dict:
+def withdraw_money(bankName: str, account: int=123444, amount: float = 1500) -> dict:
     """
-        Deposite money into an account.
+        Withdraw money from an account.
+        Args:
+            bankName (str): Bank name.
+            account (int): Account number.
+            amount (float): Amount to be withdrawn.
+        Returns:
+            dict: Confirmation message.
+    """
+    print("---Withdraw Money Tool Invoked---")
+    return {"status": "Success HO GYA", "balance": 5000}
+def deposit_money(account_holder_name: str, bankName: str, account: int=123444, amount: float = 1500) -> dict:
+    """
+        Deposit money into an account.
         Args:
             bankName (str): Bank name.
             account (int): Account number.
             amount (float): Amount to be deposited.
+            account_holder_name (str): Name of the account holder.
         Returns:
             dict: Confirmation message.
     """
-    print("---Deposite Money Tool Invoked---")
-    return {"message": f"Successfull deposited {amount} into account {account} for {bankName}."}
+    print("---Deposit Money Tool Invoked---")
+    return {"status": "Success HO GYA", "balance": 5000}
+def charity_donation(ngo_name: str, bankName: str, account: int=123444, amount: float = 1500) -> dict:
+    """
+        Make a charity donation from an account.
+        Args:
+            bankName (str): Bank name.
+            account (int): Account number.
+            amount (float): Amount to be donated.
+            ngo_name (str): Name of the NGO receiving the donation.
+        Returns:
+            dict: Confirmation message.
+    """
+    print("---Charity Donation Tool Invoked---")
+    return {"status": "Success HO GYA", "balance": 5000}
 
-tools = [tavily_tool, deposite_money]
+tools = [tavily_tool, deposit_money, withdraw_money, charity_donation]
 model_with_tools = model.bind_tools(tools)
 
-tool_node = ToolNode(tools)
-
-# 1. State define karein (ye data nodes ke beech share hoga)
-class GraphState(TypedDict):
-    state: str
-
-def router_function(state: GraphState) -> Literal["tools", "__end__"]:
+# 1. Router function
+def router_function(state: MessagesState) -> Literal["tools", "__end__"]:
     """Ye faisla karta hai ke agla rasta kaunsa hai"""
     print("---Router Function Running---", state)
-    last_message = state["state"][-1]
+    last_message = state["messages"][-1]
     # Agar model ne tool call bheji hai, to 'tools' node par jao
     if last_message.tool_calls:
         return "tools"
@@ -51,47 +79,49 @@ def router_function(state: GraphState) -> Literal["tools", "__end__"]:
     return END
 
 
-# 2. Nodes ke functions banayein
-def node1(current_state: GraphState):
-    print("---Node 1 Running---")
-    input_text = current_state["state"]
+# 2. Nodes
+def node1(current_state: MessagesState) -> MessagesState:
+    print("---Node 1 Running--- ")
+    response = model_with_tools.invoke(current_state["messages"])
+    return {"messages": [response]}
 
-    response = model.invoke(f"Please just correct this sentence if needed and just return the corrected one, '{input_text}'.")
-    response = response.content[0]['text']
-    return {"state": response}
-
-def node2(current_state: GraphState):
-    input_text = current_state["state"]
-    print("---Node 2 Running--- ", input_text)
-
-    # response = model.invoke(input_text)
-    response = model_with_tools.invoke(input_text)
-    
-    # content = response["messages"][-1].content
-
-    print("Node 2: model_with_tools Response:", response)
-    return {"state": "Good Response from Node 2!"}
 
 # 3. Graph build karein
-workflow: StateGraph = StateGraph(GraphState)
+workflow: StateGraph = StateGraph(MessagesState)
 
 # Nodes add karein
-# workflow.add_node("node1", node1)
-workflow.add_node("node2", node2)
-workflow.add_node("tools", tool_node)
+workflow.add_node("node1", node1)
+workflow.add_node("toolsNode", ToolNode(tools))
 
-# Edges (Raaste) connect karein
-workflow.add_edge(START, "node2") #agent
 
-workflow.add_conditional_edges("node2", router_function)
 
-workflow.add_edge("tools", "node2")
+# Edges (Raaste) connection: ReAct Agent (Ressoning + Action)
 
-workflow.add_edge("node2", END)
+workflow.add_edge(START, "node1")
+
+workflow.add_conditional_edges(
+    # Current node ke registered edges check honge.
+    "node1", # Outgoing edges of current node (node1) is = toolsNode and END node.
+    tools_condition,
+    {"tools": "toolsNode", "__end__": END}, # outgoing edge of toolsNode is = node1
+)
+
+"""
+Q: Real execution kis tarah hoti hai? 
+A: Runtime pe LangGraph hamesha ye rule follow karta hai:
+"Current node finish hui?
+→ Ab dekho is node ke outgoing edges kya hain, aur un edges ke conditions kya hain?
+→ Jo condition match karti hai, us edge (raaste) pe chalo."
+"""
+
+workflow.add_edge("toolsNode", "node1") 
+# workflow se bahar nikalne k liye END node call hona chahiye jo is aumated workflow ko stop ya terminate kar dega. END node pe pahunchne ka matlab hai ke humne apna kaam successfully complete kar liya hai ya koi aisi condition aa gayi hai jahan se aage badhne ki zarurat nahi hai.
+# Agar END node nahi hoga to workflow infinite loop me chala jayega, kyunki har baar "node1" se "toolsNode" pe jayega aur wapas "node1" pe aayega, bina kisi termination condition ke. END node isliye zaruri hai taaki hum apne workflow ko control kar sakein aur usy terminate kar sakein jab humara kaam complete ho jaye ya jab koi aisi situation aaye jahan se aage badhna zaruri na ho.
 
 # Graph compile
 graph: CompiledStateGraph = workflow.compile()
 
+initial_input: MessagesState = None
 
 # 4. Run karein
 while True:
@@ -99,10 +129,22 @@ while True:
     if user_input.lower() in ["exit", "quit", "bye"]:
         print("AI: Goodbye!")
         break
-    initial_input = {"state": user_input}
-    result = graph.invoke(initial_input)
 
-    print("\nAI:", result['state'])
+    if initial_input == None:
+        initial_input: MessagesState = {"messages": [
+            SystemMessage(content="Your name is 'Junior'. You are a helpful assistant."), 
+            HumanMessage(content=user_input, name="Tahir")
+            ]}
+    else:
+        initial_input["messages"].append(HumanMessage(content=user_input, name="Tahir"))
+        
+    result = graph.invoke(initial_input)
+    initial_input = result  # Agle input ke liye state update kar do
+    # print("\nAI:", result.pretty_print())
+    print("\n--- Current State ---")
+    for message in result["messages"]:
+        message.pretty_print()
+        
 
 
 
