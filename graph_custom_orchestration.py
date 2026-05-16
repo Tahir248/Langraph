@@ -148,4 +148,4 @@ while True:
 
 
 
-# print(graph.get_graph().draw_mermaid())
+print(graph.get_graph().draw_mermaid())
